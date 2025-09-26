@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}ProductVariant index{% endblock %}
+
+{% block body %}
+    <h1>ProductVariant index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Stock</th>
+                <th>SizeClothing</th>
+                <th>SizeShoes</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for product_variant in product_variants %}
+            <tr>
+                <td>{{ product_variant.id }}</td>
+                <td>{{ product_variant.stock }}</td>
+                <td>{{ product_variant.sizeClothing }}</td>
+                <td>{{ product_variant.sizeShoes }}</td>
+                <td>
+                    <a href="{{ path('app_product_variant_show', {'id': product_variant.id}) }}">show</a>
+                    <a href="{{ path('app_product_variant_edit', {'id': product_variant.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_product_variant_new') }}">Create new</a>
+{% endblock %}

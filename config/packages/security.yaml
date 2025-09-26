@@ -1,0 +1,63 @@
+security:
+  role_hierarchy:
+    ROLE_SUPER_ADMIN: [ROLE_ADMIN]
+
+  password_hashers:
+    Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: auto
+
+  providers:
+    app_user_provider:
+      entity:
+        class: App\Entity\User
+        property: email
+
+  firewalls:
+    dev:
+      pattern: ^/(_(profiler|wdt)|css|images|js)/
+      security: false
+
+    # Firewall pour le register uniquement
+    register:
+      pattern: ^/api/users/register$
+      security: false
+
+    # Firewall pour le login uniquement
+    login:
+      pattern: ^/api/login_check$
+      stateless: true
+      provider: app_user_provider
+      json_login:
+        check_path: /api/login_check
+        username_path: email
+        password_path: password
+        success_handler: lexik_jwt_authentication.handler.authentication_success
+        failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
+    api:
+      pattern: ^/api
+      stateless: true
+      provider: app_user_provider
+      jwt: ~ # Lexik gère le token JWT ici
+      logout:
+        path: /api/logout # la route de logout
+        invalidate_session: true # (optionnel si tu ne gères pas de session)
+        delete_cookies:
+          BEARER: # Supprime le cookie BEARER à la déconnexion
+            path: /
+            domain: null
+        clear_site_data:
+          - cookies
+          - storage
+
+  access_control:
+    - { path: ^/api/products, methods: [GET], roles: PUBLIC_ACCESS }
+    - { path: ^/api/product-variants, methods: [GET], roles: PUBLIC_ACCESS }
+    - { path: ^/api/categories, methods: [GET], roles: PUBLIC_ACCESS }
+    - { path: ^/api/subcategories, methods: [GET], roles: PUBLIC_ACCESS }
+    - { path: ^/api/password, methods: [POST], roles: PUBLIC_ACCESS }
+    - { path: ^/api/webhook/stripe, roles: PUBLIC_ACCESS }
+    - { path: ^/api/users/register$, roles: PUBLIC_ACCESS }
+    - { path: ^/api/login_check$, roles: PUBLIC_ACCESS }
+    - { path: ^/api/logout$, roles: PUBLIC_ACCESS }
+    - { path: ^/api/admin, roles: [ROLE_ADMIN, ROLE_SUPER_ADMIN] }
+    - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
