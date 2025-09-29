@@ -259,9 +259,10 @@ final class UserController extends AbstractController
         $ville = isset($data['ville']) && is_string($data['ville']) ? $data['ville'] : null;
         $role = isset($data['role']) && is_string($data['role']) ? $data['role'] : 'ROLE_USER';                
         $password = null;
-        if (isset($data['password']) && is_string($data['password']) && trim($data['password']) !== '') {
-            $password = $passwordHasher->hashPassword($user, $data['password']);
-        }
+        // if (isset($data['password']) && is_string($data['password']) && trim($data['password']) !== '') {
+        //     $password = $passwordHasher->hashPassword($user, $data['password']);
+        // }
+        $password = (isset($data['password']) && is_string($data['password']) && trim($data['password']) !== '') ? $data['password'] : null;
 
         $user->setLastname($lastname);
         $user->setFirstname($firstname);
@@ -280,6 +281,11 @@ final class UserController extends AbstractController
                 $messages[$error->getPropertyPath()] = $error->getMessage();
             }
             return new JsonResponse($messages, JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+          if ($password !== null) {
+            $hash = $passwordHasher->hashPassword($user, $password);
+            $user->setPassword($hash);
         }
 
         // if (in_array(Roles::SUPER_ADMIN->value, $user->getRoles())) {
