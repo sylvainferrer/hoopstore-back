@@ -9,7 +9,7 @@ class ApiLogoutListener
 {
     public function onLogout(LogoutEvent $event): void
         {
-            $response = new JsonResponse(['message' => 'Déconnexion réussie'], JsonResponse::HTTP_OK);
+            $response = new JsonResponse(['message' => 'Déconnexion effectuée avec succès.'], JsonResponse::HTTP_OK);
 
             $event->setResponse($response);
         }
