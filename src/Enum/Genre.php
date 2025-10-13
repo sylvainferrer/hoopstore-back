@@ -4,10 +4,10 @@ namespace App\Enum;
 
 enum Genre: string
 {
-    case Homme   = 'H';
-    case Femme   = 'F';
-    case Enfant  = 'E';
-    case Unisex  = 'U';
+    case Homme   = 'h';
+    case Femme   = 'f';
+    case Enfant  = 'e';
+    case Unisex  = 'u';
 
     public function label(): string
     {

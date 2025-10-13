@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\ProductVariant;
 use App\Entity\Product;
 use App\Enum\Size;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use App\Repository\ProductRepository;
 use App\Repository\ProductVariantRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,23 +19,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/api')]
 class ProductVariantController extends AbstractController
 {
-    // #[Route('/products/variant', name: 'api_product_variant_index', methods: ['GET'])]
-    // public function index(ProductVariantRepository $productVariantRepository): JsonResponse
-    // {
-    //     $productVariants = $productVariantRepository->findAll();
-
-    //     $data = array_map(fn(ProductVariant $productVariant) => [
-    //         'id'            => $productVariant->getId(),
-    //         'product'       => $productVariant->getProduct()?->getId(),
-    //         'stock'         => $productVariant->getStock(),
-    //         'size'     => $productVariant->getSize()?->value,
-    //     ], $productVariants);
-
-    //     return new JsonResponse($data, JsonResponse::HTTP_OK);
-    // }
-
-    /* ------------------------------------------------------------------------------------------------------------ */
-
     #[IsGranted('ROLE_ADMIN')]
     #[Route('/admin/product-variants', name: 'api_product_variants_create', methods: ['POST'])]
     public function create(
@@ -63,7 +47,7 @@ class ProductVariantController extends AbstractController
         $em->persist($productVariant);
         $em->flush();
 
-        return new JsonResponse(['message' => 'Détail du produit créé avec succès.'], JsonResponse::HTTP_CREATED);
+        return new JsonResponse(['message' => 'Déclinaison du produit créé avec succès.'], JsonResponse::HTTP_CREATED);
     }
 
     /* ------------------------------------------------------------------------------------------------------------ */
@@ -73,7 +57,7 @@ class ProductVariantController extends AbstractController
     {
         $productVariant = $productVariantRepository->find($id);
         if (! $productVariant) {
-            return new JsonResponse(['message' => 'Détail du produit non trouvé.'], JsonResponse::HTTP_NOT_FOUND);
+            return new JsonResponse(['message' => 'Déclinaison du produit non trouvé.'], JsonResponse::HTTP_NOT_FOUND);
         }
 
         $data = [
@@ -101,7 +85,7 @@ class ProductVariantController extends AbstractController
     ): JsonResponse {
         $productVariant = $productVariantRepository->find($id);
         if (! $productVariant) {
-            return new JsonResponse(['message' => 'Détail du produit introuvable.'], JsonResponse::HTTP_NOT_FOUND);
+            return new JsonResponse(['message' => 'Déclinaison du produit introuvable.'], JsonResponse::HTTP_NOT_FOUND);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -130,27 +114,8 @@ class ProductVariantController extends AbstractController
 
         $em->flush();
 
-        return new JsonResponse(['message' => 'Détail du produit mis à jour avec succès.'], JsonResponse::HTTP_OK);
+        return new JsonResponse(['message' => 'Déclinaison du produit mis à jour avec succès.'], JsonResponse::HTTP_OK);
     }
-
-    /* ------------------------------------------------------------------------------------------------------------ */
-
-    // #[Route('/products/{id<\d+>}/variant', name: 'api_products_variant_by_product', methods: ['GET'])]
-    // public function byProductId(int $id, ProductVariantRepository $productVariantRepository): JsonResponse
-    // {
-    //     $productsVariant = $productVariantRepository->findBy(['product' => $id], ['id' => 'ASC']);
-
-    //     $data = array_map(function (ProductVariant $productVariant) {
-    //         return [
-    //             'id'           => $productVariant->getId(),
-    //             'product'      => $productVariant->getProduct()?->getId(),
-    //             'stock'        => $productVariant->getStock(),
-    //             'size'         => $productVariant->getSize()?->value,
-    //         ];
-    //     }, $productsVariant);
-
-    //     return new JsonResponse($data, JsonResponse::HTTP_OK);
-    // }
 
     /* ------------------------------------------------------------------------------------------------------------ */
 
@@ -163,12 +128,18 @@ class ProductVariantController extends AbstractController
     ): JsonResponse {
         $productVariant = $productVariantRepository->find($id);
         if (! $productVariant) {
-            return new JsonResponse(['message' => 'Variante non trouvé.'], JsonResponse::HTTP_NOT_FOUND);
+            return new JsonResponse(['message' => 'Déclinaison non trouvée.'], JsonResponse::HTTP_NOT_FOUND);
+        }       
+
+         try {
+            $em->remove($productVariant);
+            $em->flush();
+            } catch (ForeignKeyConstraintViolationException) {
+                return new JsonResponse(
+                    ['message' => 'Cette déclinaison est liée à une ou plusieurs commandes et ne peut pas être supprimée.'],
+                    JsonResponse::HTTP_CONFLICT);
         }
 
-        $em->remove($productVariant);
-        $em->flush();
-
-        return new JsonResponse(['message' => 'Détail du produit supprimé avec succès.'],JsonResponse::HTTP_OK);
+        return new JsonResponse(['message' => 'Déclinaison du produit supprimée avec succès.'],JsonResponse::HTTP_OK);
     }
 }

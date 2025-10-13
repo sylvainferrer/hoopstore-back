@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -141,15 +142,12 @@ final class UserController extends AbstractController
         if (array_key_exists('role', $data)) {
             $user->setRole(is_string($data['role']) && $data['role'] !== '' ? $data['role'] : 'ROLE_USER');
         }
-        // if (array_key_exists('password', $data)) {
-        //     $user->setPassword(is_string($data['password']) && $data['password'] !== '' ? $passwordHasher->hashPassword($user, $data['password']) : null);
-        // }
-        // if (array_key_exists('password', $data)) {
-        //     $password = (is_string($data['password']) && $data['password'] !== '' ? $data['password'] : null);
-        //     $user->setPassword($password);
-        // }
-        $password = (array_key_exists('password', $data) && is_string($data['password']) && $data['password'] !== '' ) ? $data['password'] : null;
-        $user->setPassword($password);
+
+        $password = array_key_exists('password', $data) && is_string($data['password']) && $data['password'] !== '';
+
+        if ($password) {
+            $user->setPassword($data['password']);
+        }
 
         $errors = $validator->validate($user);
         if (count($errors) > 0) {
@@ -160,9 +158,8 @@ final class UserController extends AbstractController
             return new JsonResponse($messages, JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if ($password !== null) {
-            $hash = $passwordHasher->hashPassword($user, $password);
-            $user->setPassword($hash);
+        if ($password) {
+            $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
         }
 
         $em->flush();
@@ -417,12 +414,18 @@ final class UserController extends AbstractController
             return new JsonResponse(['message' => 'Utilisateur introuvable.'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        if ($this->getUser()->getRole() === 'ROLE_SUPER_ADMIN' && $user->getRole() !== 'ROLE_USER') {
+        if ($this->getUser()->getRole() !== 'ROLE_SUPER_ADMIN' && $user->getRole() !== 'ROLE_USER') {
             return new JsonResponse(['message' => 'Seul un super admin peut supprimer un admin ou un super admin'], JsonResponse::HTTP_FORBIDDEN);
-        }
+        }  
 
-        $em->remove($user);
-        $em->flush();
+        try {
+            $em->remove($user);
+            $em->flush();
+        } catch (ForeignKeyConstraintViolationException) {
+            return new JsonResponse(
+                ['message' => 'Suppression impossible : cet utilisateur est encore lié à une ou plusieurs commandes.'],
+                JsonResponse::HTTP_CONFLICT);
+        }
 
         return new JsonResponse(['message' => 'Utilisateur supprimé avec succès.'], JsonResponse::HTTP_OK);
     }

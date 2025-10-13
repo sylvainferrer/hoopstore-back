@@ -21,93 +21,26 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/api')]
 class ProductController extends AbstractController
 {
-    #[Route('/products', name: 'api_product_show', methods: ['GET'])]
-    public function show(ProductRepository $productRepository): JsonResponse
+
+    #[Route('/products', name: 'api_products_index', methods: ['GET'])]
+    public function index(Request $request, ProductRepository $products): JsonResponse
     {
-        $products = $productRepository->findAllActive();
-        
-        if (!$products) {
-            return new JsonResponse(['message' => 'Produits non trouvés.'], JsonResponse::HTTP_NOT_FOUND);
-        }
+        $categorySlug    = $request->query->get('category');
+        $subcategorySlug = $request->query->get('subcategory');
+        $genre           = $request->query->get('genre');
+        $sort            = $request->query->get('sort');
 
-        $data = array_map(function (Product $product) {
+        $result = $products->findProducts($categorySlug, $subcategorySlug, $genre, $sort);
 
+        $data = array_map(function ($p) {
             return [
-                'id'               => $product->getId(),
-                'name'             => $product->getName(),
-                'category'         => $product->getSubCategory()?->getCategory()?->getName(),
-                'categorySlug'     => $product->getSubCategory()?->getCategory()?->getSlug(),
-                'subCategory'      => $product->getSubCategory()?->getName(),
-                'subCategorySlug'  => $product->getSubCategory()?->getSlug(),
-                'genre'            => $product->getGenre()?->label(),
-                'description'      => $product->getDescription(),
-                'price'            => $product->getPrice() !== null ? number_format((float)$product->getPrice(), 2, ',', '') : null,
-                'date'             => $product->getDate()?->format('d-m-Y'),
-                'imageUrl'         => $this->getParameter('app.url') . '/images/products/' . $product->getImageUrl()
+                'id'               => $p->getId(),
+                'name'             => $p->getName(),
+                'subCategory'      => $p->getSubCategory()?->getName(),
+                'price'            => $p->getPrice() !== null ? number_format((float)$p->getPrice(), 2, ',', '') : null,
+                'imageUrl'         => $this->getParameter('app.url') . '/images/products/' . $p->getImageUrl()
             ];
-        }, $products);
-
-        return new JsonResponse($data, JsonResponse::HTTP_OK);
-    }
-
-    /* ------------------------------------------------------------------------------------------------------------ */
-
-    #[Route('/products/category/{slug}', name: 'api_products_by_category', methods: ['GET'])]
-    public function byCategory(string $slug, ProductRepository $productRepository): JsonResponse
-    {
-        $products = $productRepository->findByCategory($slug);
-        
-        if (!$products) {
-            return new JsonResponse(['message' => 'Produits non trouvés.'], JsonResponse::HTTP_NOT_FOUND);
-        }
-
-        $data = array_map(function (Product $product) {
-
-            return [
-                'id'               => $product->getId(),
-                'name'             => $product->getName(),
-                'category'         => $product->getSubCategory()?->getCategory()?->getName(),
-                'categorySlug'     => $product->getSubCategory()?->getCategory()?->getSlug(),
-                'subCategory'      => $product->getSubCategory()?->getName(),
-                'subCategorySlug'  => $product->getSubCategory()?->getSlug(),
-                'genre'            => $product->getGenre()?->label(),
-                'description'      => $product->getDescription(),
-                'price'            => $product->getPrice() !== null ? number_format((float)$product->getPrice(), 2, ',', '') : null,
-                'date'             => $product->getDate()?->format('d-m-Y'),
-                'imageUrl'         => $this->getParameter('app.url') . '/images/products/' . $product->getImageUrl()
-            ];
-        }, $products);
-
-        return new JsonResponse($data, JsonResponse::HTTP_OK);
-    }
-
-    /* ------------------------------------------------------------------------------------------------------------ */
-
-    #[Route('/products/subcategory/{slug}', name: 'api_products_by_subcategory', methods: ['GET'])]
-    public function bySubCategory(string $slug, ProductRepository $productRepository): JsonResponse
-    {
-        $products = $productRepository->findBySubCategory($slug);
-        
-        if (!$products) {
-            return new JsonResponse(['message' => 'Produits non trouvés.'], JsonResponse::HTTP_NOT_FOUND);
-        }
-
-        $data = array_map(function (Product $product) {
-
-            return [
-                'id'               => $product->getId(),
-                'name'             => $product->getName(),
-                'category'         => $product->getSubCategory()?->getCategory()?->getName(),
-                'categorySlug'     => $product->getSubCategory()?->getCategory()?->getSlug(),
-                'subCategory'      => $product->getSubCategory()?->getName(),
-                'subCategorySlug'  => $product->getSubCategory()?->getSlug(),
-                'genre'            => $product->getGenre()?->label(),
-                'description'      => $product->getDescription(),
-                'price'            => $product->getPrice() !== null ? number_format((float)$product->getPrice(), 2, ',', '') : null,
-                'date'             => $product->getDate()?->format('d-m-Y'),
-                'imageUrl'         => $this->getParameter('app.url') . '/images/products/' . $product->getImageUrl()
-            ];
-        }, $products);
+        }, $result);
 
         return new JsonResponse($data, JsonResponse::HTTP_OK);
     }

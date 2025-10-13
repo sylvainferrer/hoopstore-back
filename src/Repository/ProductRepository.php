@@ -19,20 +19,6 @@ class ProductRepository extends ServiceEntityRepository
         parent::__construct($registry, Product::class);
     }
 
-    public function findAllActive(): array
-    {
-        return $this->createQueryBuilder('p')
-            ->select('DISTINCT p')
-            ->join('p.subCategory', 'sc')->addSelect('sc')
-            ->join('sc.category', 'c')->addSelect('c')
-            ->join('p.variants', 'v')
-            ->andWhere('v.active = :active')
-            ->setParameter('active', true)
-            ->orderBy('p.date', 'DESC')
-            ->getQuery()
-            ->getResult();
-    }
-
     public function findAllAdmin(): array
     {
         return $this->createQueryBuilder('p')
@@ -67,30 +53,6 @@ class ProductRepository extends ServiceEntityRepository
             ->getOneOrNullResult();            
     }
 
-    public function findByCategory(string $slug): array
-    {
-        return $this->createQueryBuilder('p')
-            ->join('p.subCategory', 'sc')->addSelect('sc')
-            ->join('sc.category', 'c')->addSelect('c')
-            ->andWhere('c.slug = :slug')
-            ->setParameter('slug', $slug)
-            ->orderBy('p.date', 'DESC')
-            ->getQuery()
-            ->getResult();             
-    }
-
-    public function findBySubCategory(string $slug): array
-    {
-        return $this->createQueryBuilder('p')
-            ->join('p.subCategory', 'sc')->addSelect('sc')
-            ->join('sc.category', 'c')->addSelect('c')
-            ->andWhere('sc.slug = :slug')
-            ->setParameter('slug', $slug)
-            ->orderBy('p.date', 'DESC')
-            ->getQuery()
-            ->getResult();             
-    }
-
     public function findLatestProducts(int $limit = 6): array
     {
         return $this->createQueryBuilder('p')
@@ -104,6 +66,42 @@ class ProductRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    public function findProducts(?string $categorySlug, ?string $subcategorySlug, ?string $genre,  ?string $sort): array
+    {
+        $qb = $this->createQueryBuilder('p')
+            ->leftJoin('p.subCategory', 'sc')->addSelect('sc')
+            ->leftJoin('sc.category', 'c')->addSelect('c')
+            ->join('p.variants', 'v')
+            ->andWhere('v.active = :active')
+            ->setParameter('active', true);
+
+        if ($categorySlug) {
+            $qb->andWhere('c.slug = :cat')->setParameter('cat', $categorySlug);
+        }
+
+        if ($subcategorySlug) {
+            $qb->andWhere('sc.slug = :sub')->setParameter('sub', $subcategorySlug);
+        }
+
+        if ($genre) {
+            $allowed = ['h', 'f', 'e', 'u'];
+            if (in_array($genre, $allowed, true)) {
+                $qb->andWhere('p.genre = :genre')
+                ->setParameter('genre', $genre);
+            }
+        }
+
+        if ($sort === 'price_asc') {
+            $qb->orderBy('p.price', 'ASC');
+        } elseif ($sort === 'price_desc') {
+            $qb->orderBy('p.price', 'DESC');
+        } else {
+            $qb->orderBy('p.date', 'DESC');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
 }

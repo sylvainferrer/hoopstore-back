@@ -11,14 +11,9 @@ class AuthenticationSuccessListener
 
     {
         $data = $event->getData();
-        $user = $event->getUser();
 
-        if (!$user instanceof UserInterface) {
-            return;
-        }
-        
-        $data['firstname'] = $user->getFirstname(); // Assuming these methods exist in your User entity
-        $data['role'] = $user->getRole();
+        // On ajoute juste un message de succès
+        $data['message'] = 'Connexion réussie !';
 
         $event->setData($data);
     }
